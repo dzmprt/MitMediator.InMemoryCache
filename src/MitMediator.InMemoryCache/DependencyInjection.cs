@@ -1,6 +1,7 @@
 using System.Reflection;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using MitMediator.InMemoryCache.Notifications;
 
 namespace MitMediator.InMemoryCache;
 
@@ -24,12 +25,12 @@ public static class DependencyInjection
         var types =  assemblies.SelectMany(a => a.GetTypes().Where(t => !t.IsAbstract)).ToArray();
         foreach (var type in types)
         {
-            var cacheUntilSentAttribute = (CacheUntilSentAttribute?)type.GetCustomAttribute(typeof(CacheUntilSentAttribute), inherit: true);
-            if (cacheUntilSentAttribute == null)
+            var cacheAttribute = type.GetCustomAttribute<CacheResponseAttribute>();
+            if (cacheAttribute == null || cacheAttribute.RequestsToClearCache is null)
             {
                 continue;
             }
-            foreach (var clearCacheTriggerRequest in cacheUntilSentAttribute.TriggersToClearRequests)
+            foreach (var clearCacheTriggerRequest in cacheAttribute.RequestsToClearCache)
             {
                 if (!clearCacheMatrix.TryGetValue(clearCacheTriggerRequest, out var toClearList))
                 {
@@ -66,7 +67,9 @@ public static class DependencyInjection
             services.AddMemoryCache();
         }
         services.AddSingleton<MemoryCache>();
-
+        services
+            .AddScoped<INotificationHandler<ClearAllResponsesCacheNotification>, ClearAllResponsesCacheNotificationHandler>()
+            .AddScoped<INotificationHandler<ClearResponseCacheForRequestNotification>, ClearResponseCacheForRequestHandler>();
         return services;
     }
 }

@@ -36,10 +36,10 @@ public class InMemoryCacheBehaviorSizeTests
     }
     
 
-    [CacheForever]
+    [CacheResponse]
     private class SingleRequest : IRequest<string> { }
     
-    [CacheForever]
+    [CacheResponse]
     private class CollectionRequest : IRequest<List<string>> { }
     private class SingleHandlerNext : IRequestHandlerNext<SingleRequest, string>
     {

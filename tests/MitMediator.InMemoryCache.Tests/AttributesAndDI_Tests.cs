@@ -6,24 +6,29 @@ namespace MitMediator.InMemoryCache.Tests;
 public class AttributeTests
 {
     [Fact]
-    public void CacheForeverAttribute_ShouldImplementICacheAttribute()
+    public void CacheResponseAttribute_CacheForever_ShouldHaveEntrySize1ByDefaultAndOtherDataNull()
     {
-        var attr = new CacheForeverAttribute();
-        Assert.IsAssignableFrom<ICacheAttribute>(attr);
+        var attr = new CacheResponseAttribute();
+        Assert.Equal(1, attr.EntrySize);
+        Assert.Null(attr.AbsoluteExpirationRelativeToNowSeconds);
+        Assert.Null(attr.RequestsToClearCache);
+
     }
 
     [Fact]
-    public void CacheForSecondsAttribute_ShouldSetCacheTime()
+    public void CacheResponseAttribute_CacheForTime_ShouldSetCacheTimeAndSize()
     {
-        var attr = new CacheForSecondsAttribute(42);
-        Assert.Equal(TimeSpan.FromSeconds(42), attr.CacheTime);
+        var attr = new CacheResponseAttribute(42, 2);
+        Assert.Equal(42, attr.AbsoluteExpirationRelativeToNowSeconds);
+        Assert.Equal(2, attr.EntrySize);
+
     }
 
     [Fact]
-    public void CacheUntilSentAttribute_ShouldSetTriggers()
+    public void CacheResponseAttribute_CacheUntilTrigger_ShouldSetTriggers()
     {
         var types = new[] { typeof(string), typeof(int) };
-        var attr = new CacheUntilSentAttribute(types);
-        Assert.Equal(types, attr.TriggersToClearRequests);
+        var attr = new CacheResponseAttribute(types);
+        Assert.Equal(types, attr.RequestsToClearCache);
     }
 }

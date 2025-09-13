@@ -5,13 +5,13 @@
         <RootNamespace>MitMediator.InMemoryCache</RootNamespace>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <Version>9.0.0-alfa</Version>
+        <Version>9.0.0-alfa-2</Version>
         <Title>MitMediator.InMemoryCache</Title>
         <Description>An attribute-driven in-memory caching extension for the MitMediator</Description>
         <PackageProjectUrl>https://github.com/dzmprt/MitMediator.InMemoryCache</PackageProjectUrl>
         <PackageTags>mediator;request;response;queries;commands;mitmediator;cqrs;memorycache;inmemorycache</PackageTags>
-        <PackageReleaseNotes>v9.0.0-alfa
-Init</PackageReleaseNotes>
+        <PackageReleaseNotes>v9.0.0-alfa-2
+Added extensions methods for IMediator. Unified all cache-related attributes into a single [CacheResponse] attribute</PackageReleaseNotes>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageIcon>logo.png</PackageIcon>

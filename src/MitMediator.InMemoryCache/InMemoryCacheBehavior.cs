@@ -1,5 +1,5 @@
 using System.Collections;
-using System.Text.Json;
+using System.Reflection;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace MitMediator.InMemoryCache;
@@ -14,10 +14,7 @@ public class InMemoryCacheBehavior<TRequest, TResponse>(MemoryCache memoryCache)
         TResponse result;
         var requestType = typeof(TRequest);
 
-        var cacheAttribute = requestType
-            .GetCustomAttributes(inherit: true)
-            .OfType<ICacheAttribute>()
-            .SingleOrDefault();
+        var cacheAttribute = requestType.GetCustomAttribute<CacheResponseAttribute>();
 
         if (cacheAttribute is null)
         {
@@ -25,10 +22,9 @@ public class InMemoryCacheBehavior<TRequest, TResponse>(MemoryCache memoryCache)
             ClearCacheByMatrix(requestType);
             return result;
         }
-
-        // DON'T USE GetHashCode()
-        var key = $"{requestType.Name}_{JsonSerializer.Serialize(request)}";
         
+        var key = request.GetCacheEntryKey();
+
         if (memoryCache.TryGetValue(key, out var value))
         {
             ClearCacheByMatrix(requestType);
@@ -38,28 +34,36 @@ public class InMemoryCacheBehavior<TRequest, TResponse>(MemoryCache memoryCache)
         result = await nextPipe.InvokeAsync(request, cancellationToken);
         ClearCacheByMatrix(requestType);
 
-        if(result is null)
+        if (result is null)
         {
             return result;
         }
 
-        var entrySize = 1;
+        var entrySize = cacheAttribute.EntrySize;
         if (result is ICollection collection)
         {
-            entrySize = collection.Count;
+            entrySize = entrySize * collection.Count;
         }
-        switch (cacheAttribute)
+
+        var memoryCacheEntryOptions = new MemoryCacheEntryOptions
         {
-            case CacheForeverAttribute:
-                memoryCache.Set(key, result,  new MemoryCacheEntryOptions { Priority = CacheItemPriority.NeverRemove, Size = entrySize });
-                break;
-            case CacheUntilSentAttribute:
-                memoryCache.Set(key, result, new MemoryCacheEntryOptions { Size = entrySize });
-                break;
-            case CacheForSecondsAttribute cacheForSecondsAttribute:
-                memoryCache.Set(key, result, new MemoryCacheEntryOptions { Size = entrySize, AbsoluteExpirationRelativeToNow = cacheForSecondsAttribute.CacheTime});
-                break;
+            Size = entrySize
+        };
+        
+        // TODO: check by benchmarks
+        // if (!cacheAttribute.AbsoluteExpirationRelativeToNowSeconds.HasValue &&
+        //     cacheAttribute.RequestsToClearCache is null)
+        // {
+        //     memoryCacheEntryOptions.Priority = CacheItemPriority.NeverRemove;
+        // }
+
+        if (cacheAttribute.AbsoluteExpirationRelativeToNowSeconds.HasValue)
+        {
+            memoryCacheEntryOptions.AbsoluteExpirationRelativeToNow =
+                new TimeSpan(0, 0, cacheAttribute.AbsoluteExpirationRelativeToNowSeconds.Value);
         }
+
+        memoryCache.Set(key, result, memoryCacheEntryOptions);
 
         return result;
     }
@@ -67,21 +71,16 @@ public class InMemoryCacheBehavior<TRequest, TResponse>(MemoryCache memoryCache)
     // TODO: background task?
     private void ClearCacheByMatrix(Type request)
     {
-        if (ClearCacheMatrix.ClearCacheMatrixDictionary is null)
-        {
-            return;
-        }
-
         if (ClearCacheMatrix.ClearCacheMatrixDictionary.TryGetValue(request, out var typesToClearCache))
         {
-            var requestsToClearCacheNames = typesToClearCache.Select(c => c.Name).ToArray();
-            foreach (var typesToClearCacheName in requestsToClearCacheNames)
+            var requestsTypeName = typesToClearCache.Select(c => c.Name).ToArray();
+            foreach (var requestTypeName in requestsTypeName)
             {
                 var keys = memoryCache
                     .Keys
-                    .Where(k => k.ToString()!.StartsWith(typesToClearCacheName))
+                    .Where(k => k is string && k.ToString()?.StartsWith(requestTypeName) == true)
                     .Select(k => k.ToString()).ToArray();
-                        
+
                 foreach (var key in keys)
                 {
                     memoryCache.Remove(key!);
