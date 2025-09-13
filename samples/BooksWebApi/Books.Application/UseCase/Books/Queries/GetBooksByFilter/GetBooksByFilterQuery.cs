@@ -7,7 +7,7 @@ namespace Books.Application.UseCase.Books.Queries.GetBooksByFilter;
 /// <summary>
 /// Get books query.
 /// </summary>
-[CacheForSeconds(10)]
+[CacheResponse(30, 2)]
 public struct GetBooksByFilterQuery : IRequest<Book[]>
 {
     /// <summary>

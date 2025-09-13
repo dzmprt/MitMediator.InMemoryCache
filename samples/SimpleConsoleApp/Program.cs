@@ -19,7 +19,7 @@ Console.WriteLine(result); //Pong result
 result = await mediator.SendAsync<PingRequest, string>(new PingRequest(), CancellationToken.None);
 Console.WriteLine(result); //Pong result
 
-[CacheForever]
+[CacheResponse]
 public class PingRequest : IRequest<string>;
 
 public class PingRequestHandler : IRequestHandler<PingRequest, string>

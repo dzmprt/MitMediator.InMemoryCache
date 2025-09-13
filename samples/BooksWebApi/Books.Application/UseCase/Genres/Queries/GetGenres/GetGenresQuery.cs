@@ -7,5 +7,5 @@ namespace Books.Application.UseCase.Genres.Queries.GetGenres;
 /// <summary>
 /// Get genres query.
 /// </summary>
-[CacheForever]
+[CacheResponse]
 public struct GetGenresQuery : IRequest<Genre[]>;

@@ -7,7 +7,7 @@ namespace Books.Application.UseCase.Books.Queries.GetBook;
 /// <summary>
 /// Get book query.
 /// </summary>
-[CacheForSeconds(10)]
+[CacheResponse]
 public struct GetBookQuery : IRequest<Book>
 {
     /// <summary>

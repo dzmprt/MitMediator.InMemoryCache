@@ -1,8 +1,10 @@
 using Books.Application.UseCase.Authors.Commands.DeleteAuthor;
 using Books.Application.Abstractions.Infrastructure;
 using Books.Application.Exceptions;
+using Books.Application.UseCase.Books.Queries.GetBook;
 using Books.Domain;
 using MitMediator;
+using MitMediator.InMemoryCache;
 
 namespace Books.Application.UseCase.Books.Commands.DeleteBook;
 
@@ -12,14 +14,16 @@ namespace Books.Application.UseCase.Books.Commands.DeleteBook;
 internal sealed class DeleteBookCommandHandler : IRequestHandler<DeleteBookCommand>
 {
     private readonly IBaseRepository<Book> _booksRepository;
-    
+    private readonly IMediator _mediator;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DeleteBookCommandHandler"/>.
     /// </summary>
     /// <param name="booksRepository">Books repository.</param>
-    public DeleteBookCommandHandler(IBaseRepository<Book> booksRepository)
+    public DeleteBookCommandHandler(IBaseRepository<Book> booksRepository, IMediator mediator)
     {
         _booksRepository = booksRepository;
+        _mediator = mediator;
     }
     
     /// <inheritdoc/>
@@ -31,6 +35,7 @@ internal sealed class DeleteBookCommandHandler : IRequestHandler<DeleteBookComma
             throw new NotFoundException();
         }
         await _booksRepository.RemoveAsync(book, cancellationToken);
+        await _mediator.ClearResponseCacheAsync(new GetBookQuery() { BookId = command.BookId }, cancellationToken);
         return Unit.Value;
     }
 }

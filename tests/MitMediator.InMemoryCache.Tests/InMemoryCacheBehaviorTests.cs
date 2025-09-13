@@ -93,7 +93,7 @@ public class InMemoryCacheBehaviorTests
         Assert.False(_memoryCache.TryGetValue(key, out _));
     }
 
-    [CacheUntilSent(typeof(ClearCacheRequest))]
+    [CacheResponse(typeof(ClearCacheRequest))]
     internal class CachedRequest : IRequest<string>
     {
         public string TestData { get; set; }
@@ -101,7 +101,7 @@ public class InMemoryCacheBehaviorTests
 
     internal class ClearCacheRequest : IRequest<string>;
 
-    [CacheForever]
+    [CacheResponse]
     internal class TestRequest : IRequest<string>
     {
         public string Value { get; set; } = string.Empty;
@@ -112,7 +112,7 @@ public class InMemoryCacheBehaviorTests
         public string Value { get; set; } = string.Empty;
     }
 
-    [CacheForSeconds(10)]
+    [CacheResponse(10)]
     internal class CacheForSecondsRequest : IRequest<string>
     {
         public string Value { get; set; } = string.Empty;
