@@ -27,7 +27,8 @@ builder.Services.AddMitMediator();
 builder.Services.AddRequestsInMemoryCache()
 ```
 
-⚠️ **Important: Make sure `.AddRequestsInMemoryCache()` is registered as the last `IPipelineBehavior`. Cached responses will short-circuit the pipeline and prevent further execution**
+> [!WARNING]
+> Make sure `.AddRequestsInMemoryCache()` is registered as the last `IPipelineBehavior`. Cached responses will short-circuit the pipeline and prevent further execution**
 
 To customize `MemoryCache` options and specify assemblies to scan:
 
