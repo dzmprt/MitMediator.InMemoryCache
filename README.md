@@ -28,7 +28,7 @@ builder.Services.AddRequestsInMemoryCache()
 ```
 
 > [!WARNING]
-> Make sure `.AddRequestsInMemoryCache()` is registered as the last `IPipelineBehavior`. Cached responses will short-circuit the pipeline and prevent further execution**
+> Make sure `.AddRequestsInMemoryCache()` is registered as the last `IPipelineBehavior`. Cached responses will short-circuit the pipeline and prevent further execution
 
 To customize `MemoryCache` options and specify assemblies to scan:
 
