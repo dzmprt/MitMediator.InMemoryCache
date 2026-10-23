@@ -1,13 +1,12 @@
 using Books.Domain;
 using MitMediator;
-using MitMediator.InMemoryCache;
 
 namespace Books.Application.UseCase.Books.Queries.GetBook;
 
 /// <summary>
 /// Get book query.
 /// </summary>
-[CacheResponse]
+[CacheResponseInMemory]
 public struct GetBookQuery : IRequest<Book>
 {
     /// <summary>

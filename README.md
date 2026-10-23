@@ -1,141 +1,140 @@
 # MitMediator.InMemoryCache
 
-## An attribute-driven in-memory caching extension for the [MitMediator](https://github.com/dzmprt/MitMediator)
+In-memory response caching for [MitMediator](https://github.com/dzmprt/MitMediator)
 
 [![Build and Test](https://github.com/dzmprt/MitMediator.InMemoryCache/actions/workflows/dotnet.yml/badge.svg)](https://github.com/dzmprt/MitMediator.InMemoryCache/actions/workflows/dotnet.yml)
 ![NuGet](https://img.shields.io/nuget/v/MitMediator.InMemoryCache)
-![.NET 9.0](https://img.shields.io/badge/Version-.NET%209.0-informational?style=flat&logo=dotnet)
-![NuGet Downloads](https://img.shields.io/nuget/dt/MitMediator.InMemoryCache)
+![.NET 10.0](https://img.shields.io/badge/.NET-10.0-informational?style=flat&logo=dotnet)
 ![License](https://img.shields.io/github/license/dzmprt/MitMediator.InMemoryCache)
 
-## Installation
+## Setup
 
 ### 1. Add package
 
 ```sh
- dotnet add package MitMediator.InMemoryCache -v 9.0.0-alfa-2
+dotnet add package MitMediator.InMemoryCache -v 10.0.0-alfa
+```
+
+For a project that only declares requests, use `MitMediator.InMemoryCache.Abstractions` instead:
+
+```sh
+dotnet add package MitMediator.InMemoryCache.Abstractions -v 10.0.0-alfa
 ```
 
 ### 2. Register services
 
 ```csharp
-// Register handlers and IMediator
-builder.Services.AddMitMediator(); 
+using MitMediator;
 
-// Register MemoryCache, InMemoryCacheBehavior,
-// scan information about all IRequest<>
-builder.Services.AddRequestsInMemoryCache()
+builder.Services.AddMitMediator();
+builder.Services.AddMitMediatorInMemoryCache();
 ```
+
+By default, registration scans all loaded assemblies for cache clearing rules.
+Only the first call per service collection takes effect. Rules and locks are local to each service provider.
 
 > [!WARNING]
 > Make sure `.AddRequestsInMemoryCache()` is registered as the last `IPipelineBehavior`. Cached responses will short-circuit the pipeline and prevent further execution
 
-To customize `MemoryCache` options and specify assemblies to scan:
+Optional settings (use instead of the default cache registration):
 
 ```csharp
-builder.Services.AddRequestsInMemoryCache(
-    new MemoryCacheOptions { SizeLimit = 1000 }, 
-    new []{typeof(GetQuery).Assembly});`
+using Microsoft.Extensions.Caching.Memory;
+
+builder.Services.AddMitMediatorInMemoryCache(
+    new MemoryCacheOptions { SizeLimit = 1000 },
+    lockStripingGatesCount: 128,
+    assemblies: [typeof(GetBookQuery).Assembly]);
 ```
+
+Include all assemblies with decorated requests. The lock count defaults to 64 per request type and must be positive.
 
 ## Usage
 
-Decorate your request classes with attribute `[CacheResponse]`
+Add the attribute to a request class or struct. All extensions and the attribute use `MitMediator`:
 
-Requests decorated with the `[CacheResponse]` attribute will have their responses cached in memory. You can control expiration, entry size, and define which requests should invalidate the cache
+### No time limit
 
-### CacheResponseAttribute params
-
-| Name                   | Description                                                                                           |
-|------------------------|-------------------------------------------------------------------------------------------------------|
-| `expirationSeconds`    | Absolute expiration time in seconds, relative to the current moment. Set null for indefinitely        |
-| `entrySize`            | The size of the cache entry item. For collections, size is calculated per element. Default value is 1 |
-| `requestsToClearCache` | Types of requests that will trigger cache invalidation                                                |
-
-Use `IMediator` extension methods to clear cached responses:
-
-Clear cache for specific request data:
 ```csharp
-mediator.ClearResponseCacheAsync(request, ct);
+using MitMediator;
+
+[CacheResponseInMemory]
+public readonly record struct GetGenresQuery : IRequest<Genre[]>;
 ```
 
-Clear all cached responses for a request type
+Stays cached until cleared or evicted.
+
+### Fixed lifetime
+
 ```csharp
-mediator.ClearAllResponseCacheAsync<GetBookQuery>(ct);
-```
-
-## Example usage
-
-Cache indefinitely:
-```csharp
-[CacheResponse]
-public struct GetGenresQuery : IRequest<Genre[]>;
-```
-
-> Default `entrySize` is 1
-
-Cache for 10 seconds:
-```csharp
-[CacheResponse(10)]
-public struct GetBookQuery : IRequest<Book>
+[CacheResponseInMemory(30)]
+public readonly record struct GetBookQuery : IRequest<Book>
 {
-    public int BookId { get; set; }
+    public int BookId { get; init; }
 }
 ```
 
-Invalidate cache on specific requests:
+Expires after 30 seconds. Cache hits do not extend this time.
+
+### Collection with a time limit
+
 ```csharp
-[CacheResponse(typeof(DeleteAuthorCommand), typeof(UpdateAuthorCommand))]
-public struct GetAuthorsByFilterQuery : IRequest<Author[]>
+[CacheResponseInMemory(30, 4)]
+public readonly record struct GetBooksQuery : IRequest<Book[]>;
+```
+
+Expires after 30 seconds. Each book counts as 4 size units: 5 books use 20 units.
+
+### Time limit and clearing on another command
+
+```csharp
+[CacheResponseInMemory(30, 1, typeof(UpdateAuthorCommand))]
+public readonly record struct GetAuthorQuery : IRequest<Author>
 {
-    public int? Limit { get; init; }
-    
-    public int? Offset { get; init; }
-    
-    public string? FreeText { get; init; }
+    public int AuthorId { get; init; }
 }
 ```
 
-Set custom entry size and time (30s)
+Expires after 30 seconds. A successful `UpdateAuthorCommand` clears all cached authors sooner.
+
+`expirationSeconds` is positive, or `-1` for no time limit.
+`entrySize` defaults to 1. For `System.Collections.ICollection`, size is `Count * entrySize`.
+`SizeLimit` uses these units, not bytes. There is no capacity limit by default.
+The attribute is not inherited.
+
+## Clear the cache
+
+Clear one request value or all values of a request type:
+
 ```csharp
-[CacheResponse(30, 4)]
-public struct GetBooksByFilterQuery : IRequest<Book[]>
-{
-    public int? Limit { get; init; }
-    
-    public int? Offset { get; init; }
-    
-    public string? FreeText { get; init; }
-}
+await mediator.ClearResponseCacheAsync(
+    new GetBookQuery { BookId = bookId },
+    cancellationToken);
+
+await mediator.ClearAllResponseCacheAsync<GetBookQuery>(cancellationToken);
 ```
 
-> For `ICollection` types, the cache entry size is `response.Count * entrySize`
+Await clearing after a successful data change.
+Automatic clearing also runs on a cached trigger, but not when downstream execution throws.
+The trigger needs no caching attribute.
+For `Query<T>`, automatic clearing covers all used variants, such as `Query<int>` and `Query<string>`, plus matching entries added directly to the cache.
+Clearing waits for active writes before removing entries.
 
-Clear cache after updating data:
-```csharp
-public async ValueTask<Book> HandleAsync(UpdateBookTitleCommand command, CancellationToken cancellationToken)
-{
-    var book = await _booksRepository.FirstOrDefaultAsync(b => b.BookId == command.BookId, cancellationToken);
-        
-    book.SetTitle(command.Title);
+## Important
 
-    await _booksRepository.UpdateAsync(book, cancellationToken);
-    
-    // Clear cached response for the updated book
-    await _mediator.ClearResponseCacheAsync(new GetBookQuery() { BookId = command.BookId }, cancellationToken);
-    return book;
-}
-```
+- Cache hits skip the handler and later pipeline behaviors. Register validation and authorization before caching.
+- Keys use the runtime type's `FullName` and default JSON serialization. Use properties, not fields, for request data. Assembly identity is not part of the type prefix.
+- `null` results and exceptions are not cached. Cached objects are not copied; avoid changing them.
+- Concurrent misses for the same key run one handler if its result is cached. Different keys may share a lock.
+- Cancellation while waiting for a lock stops that caller without running its handler.
+- Do not await clearing your own cache inside a cached handler, even through another command. Nested cached requests can also deadlock.
+- The cache is local to one process and is lost on restart.
 
-> Responses are cached per unique request data.
-> For example, `GetBookQuery` caches a separate response for each `BookId`
+## Samples
 
-## See [samples](./samples)
+- [SimpleConsoleApp](./samples/SimpleConsoleApp)
+- [BooksWebApi](./samples/BooksWebApi)
 
 ## License
 
-MIT
-
-
-
-
+[MIT](./LICENSE)

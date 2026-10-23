@@ -1,12 +1,8 @@
-using Microsoft.Extensions.Caching.Memory;
-
 namespace MitMediator.InMemoryCache.Notifications;
 
 internal class ClearResponseCacheForRequestNotification : INotification
 {
     public object Request { get; private set; }
-    
-    // public Type RequestType { get; private set; } = requestType;
 
     public ClearResponseCacheForRequestNotification(object request)
     {
@@ -18,12 +14,11 @@ internal class ClearResponseCacheForRequestNotification : INotification
     }
 }
 
-internal class ClearResponseCacheForRequestHandler(MemoryCache memoryCache) : INotificationHandler<ClearResponseCacheForRequestNotification>
+internal class ClearResponseCacheForRequestHandler(CacheInvalidationService invalidationService) : INotificationHandler<ClearResponseCacheForRequestNotification>
 {
     public ValueTask HandleAsync(ClearResponseCacheForRequestNotification notification, CancellationToken cancellationToken)
     {
         var key = notification.Request!.GetCacheEntryKey();
-        memoryCache.Remove(key);
-        return ValueTask.CompletedTask;
+        return invalidationService.InvalidateAsync(notification.Request.GetType(), cancellationToken, key);
     }
 }

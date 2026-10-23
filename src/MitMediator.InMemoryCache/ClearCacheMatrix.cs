@@ -1,9 +1,6 @@
-using System.Collections.Concurrent;
-
 namespace MitMediator.InMemoryCache;
 
-internal static class ClearCacheMatrix
+internal sealed class ClearCacheMatrix(IReadOnlyDictionary<Type, Type[]> clearCacheMatrixDictionary)
 {
-    public static IReadOnlyDictionary<Type, Type[]> ClearCacheMatrixDictionary { get; set; } =
-        new Dictionary<Type, Type[]>();
+    public IReadOnlyDictionary<Type, Type[]> ClearCacheMatrixDictionary { get; } = clearCacheMatrixDictionary;
 }
