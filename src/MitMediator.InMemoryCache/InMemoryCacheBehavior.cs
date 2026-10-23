@@ -4,43 +4,69 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace MitMediator.InMemoryCache;
 
-public class InMemoryCacheBehavior<TRequest, TResponse>(MemoryCache memoryCache)
+internal class InMemoryCacheBehavior<TRequest, TResponse>(
+    MemoryCache memoryCache,
+    CacheRequestTypeLocksStriping<TRequest> cacheRequestTypeLocksStriping,
+    CacheInvalidationService invalidationService)
     : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse>
 {
-    public async ValueTask<TResponse> HandleAsync(TRequest request, IRequestHandlerNext<TRequest, TResponse> nextPipe,
+    public async ValueTask<TResponse> HandleAsync(
+        TRequest request,
+        IRequestHandlerNext<TRequest, TResponse> nextPipe,
         CancellationToken cancellationToken)
     {
-        TResponse result;
         var requestType = typeof(TRequest);
 
-        var cacheAttribute = requestType.GetCustomAttribute<CacheResponseAttribute>();
-
+        var cacheAttribute = requestType.GetCustomAttribute<CacheResponseInMemoryAttribute>();
         if (cacheAttribute is null)
         {
-            result = await nextPipe.InvokeAsync(request, cancellationToken);
-            ClearCacheByMatrix(requestType);
-            return result;
+            return await nextPipe.InvokeAsync(request, cancellationToken);
         }
-        
+
+        var runtimeRequestType = request.GetType();
+        invalidationService.RegisterRequestType(runtimeRequestType);
         var key = request.GetCacheEntryKey();
-
-        if (memoryCache.TryGetValue(key, out var value))
+        if (memoryCache.TryGetValue(key, out var responseFromCache))
         {
-            ClearCacheByMatrix(requestType);
-            return (TResponse)value;
+            return (TResponse)responseFromCache!;
         }
 
-        result = await nextPipe.InvokeAsync(request, cancellationToken);
-        ClearCacheByMatrix(requestType);
-
-        if (result is null)
+        var gate = runtimeRequestType == requestType
+            ? cacheRequestTypeLocksStriping.ForRequest(key)
+            : invalidationService.GetRequestTypeLocks(runtimeRequestType).ForRequest(key);
+        await gate.WaitAsync(cancellationToken);
+        try
         {
+            if (memoryCache.TryGetValue(key, out responseFromCache))
+            {
+                return (TResponse)responseFromCache!;
+            }
+
+            var result = await nextPipe.InvokeAsync(request, cancellationToken);
+
+            if (result == null)
+            {
+                return result;
+            }
+
+            SetMemoryCacheValue(result, key, cacheAttribute);
             return result;
         }
+        finally
+        {
+            gate.Release();
+        }
+    }
 
-        var entrySize = cacheAttribute.EntrySize;
-        if (result is ICollection collection)
+    private void SetMemoryCacheValue(
+        TResponse response,
+        string key,
+        CacheResponseInMemoryAttribute
+        cacheResponseInMemoryAttribute)
+    {
+        long entrySize = cacheResponseInMemoryAttribute.EntrySize;
+        if (response is ICollection collection)
         {
             entrySize = entrySize * collection.Count;
         }
@@ -49,43 +75,13 @@ public class InMemoryCacheBehavior<TRequest, TResponse>(MemoryCache memoryCache)
         {
             Size = entrySize
         };
-        
-        // TODO: check by benchmarks
-        // if (!cacheAttribute.AbsoluteExpirationRelativeToNowSeconds.HasValue &&
-        //     cacheAttribute.RequestsToClearCache is null)
-        // {
-        //     memoryCacheEntryOptions.Priority = CacheItemPriority.NeverRemove;
-        // }
 
-        if (cacheAttribute.AbsoluteExpirationRelativeToNowSeconds.HasValue)
+        if (cacheResponseInMemoryAttribute.AbsoluteExpirationRelativeToNowSeconds.HasValue)
         {
             memoryCacheEntryOptions.AbsoluteExpirationRelativeToNow =
-                new TimeSpan(0, 0, cacheAttribute.AbsoluteExpirationRelativeToNowSeconds.Value);
+                new TimeSpan(0, 0, cacheResponseInMemoryAttribute.AbsoluteExpirationRelativeToNowSeconds.Value);
         }
 
-        memoryCache.Set(key, result, memoryCacheEntryOptions);
-
-        return result;
-    }
-
-    // TODO: background task?
-    private void ClearCacheByMatrix(Type request)
-    {
-        if (ClearCacheMatrix.ClearCacheMatrixDictionary.TryGetValue(request, out var typesToClearCache))
-        {
-            var requestsTypeName = typesToClearCache.Select(c => c.Name).ToArray();
-            foreach (var requestTypeName in requestsTypeName)
-            {
-                var keys = memoryCache
-                    .Keys
-                    .Where(k => k is string && k.ToString()?.StartsWith(requestTypeName) == true)
-                    .Select(k => k.ToString()).ToArray();
-
-                foreach (var key in keys)
-                {
-                    memoryCache.Remove(key!);
-                }
-            }
-        }
+        memoryCache.Set(key, response, memoryCacheEntryOptions);
     }
 }

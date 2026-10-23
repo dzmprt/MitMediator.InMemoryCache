@@ -1,6 +1,6 @@
 using MitMediator.InMemoryCache.Notifications;
 
-namespace MitMediator.InMemoryCache;
+namespace MitMediator;
 
 public static class MediatorExtensions
 {

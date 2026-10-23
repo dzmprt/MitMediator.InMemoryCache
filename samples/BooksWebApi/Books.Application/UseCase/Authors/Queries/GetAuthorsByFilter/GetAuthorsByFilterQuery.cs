@@ -1,3 +1,4 @@
+using Books.Application.UseCase.Authors.Commands.CreateAuthor;
 using Books.Application.UseCase.Authors.Commands.DeleteAuthor;
 using Books.Application.UseCase.Authors.Commands.UpdateAuthor;
 using Books.Domain;
@@ -9,7 +10,7 @@ namespace Books.Application.UseCase.Authors.Queries.GetAuthorsByFilter;
 /// <summary>
 /// Get authors query.
 /// </summary>
-[CacheResponse(typeof(DeleteAuthorCommand), typeof(UpdateAuthorCommand))]
+[CacheResponseInMemory(typeof(DeleteAuthorCommand), typeof(UpdateAuthorCommand), typeof(CreateAuthorCommand))]
 public struct GetAuthorsByFilterQuery : IRequest<Author[]>
 {
     /// <summary>

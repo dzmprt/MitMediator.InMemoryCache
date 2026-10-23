@@ -2,14 +2,23 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace MitMediator.InMemoryCache.Tests;
 
-public class InMemoryCacheBehaviorTests
+public class InMemoryCacheBehaviorTests : IDisposable
 {
     private readonly MemoryCache _memoryCache = new(new MemoryCacheOptions());
+    private readonly TestCacheServices _services;
+
+    public InMemoryCacheBehaviorTests() => _services = new TestCacheServices(_memoryCache);
+
+    public void Dispose()
+    {
+        _services.Dispose();
+        _memoryCache.Dispose();
+    }
 
     [Fact]
     public async Task HandleAsync_ShouldCacheResult_WhenCacheForeverAttributeIsPresent()
     {
-        var behavior = new InMemoryCacheBehavior<TestRequest, string>(_memoryCache);
+        var behavior = new InMemoryCacheBehavior<TestRequest, string>(_memoryCache, _services.Locks<TestRequest>(), _services.Invalidation);
         var request = new TestRequest { Value = "test" };
         var nextCalled = 0;
         var next = new TestRequestHandlerNext<string>(() =>
@@ -29,7 +38,7 @@ public class InMemoryCacheBehaviorTests
     [Fact]
     public async Task HandleAsync_ShouldNotCache_WhenNoCacheAttribute()
     {
-        var behavior = new InMemoryCacheBehavior<NoCacheRequest, string>(_memoryCache);
+        var behavior = new InMemoryCacheBehavior<NoCacheRequest, string>(_memoryCache, _services.Locks<NoCacheRequest>(), _services.Invalidation);
         var request = new NoCacheRequest { Value = "test" };
         var nextCalled = 0;
         var next = new TestRequestHandlerNext<string>(() =>
@@ -49,7 +58,7 @@ public class InMemoryCacheBehaviorTests
     [Fact]
     public async Task HandleAsync_ShouldCacheForSeconds()
     {
-        var behavior = new InMemoryCacheBehavior<CacheForSecondsRequest, string>(_memoryCache);
+        var behavior = new InMemoryCacheBehavior<CacheForSecondsRequest, string>(_memoryCache, _services.Locks<CacheForSecondsRequest>(), _services.Invalidation);
         var request = new CacheForSecondsRequest { Value = "test" };
         var nextCalled = 0;
         var next = new TestRequestHandlerNext<string>(() =>
@@ -70,11 +79,11 @@ public class InMemoryCacheBehaviorTests
     public async Task HandleAsync_ShouldCacheAndClearCacheByMatrix()
     {
         var type = typeof(CachedRequest);
-        ClearCacheMatrix.ClearCacheMatrixDictionary = new Dictionary<Type, Type[]>
+        var matrix = new ClearCacheMatrix(new Dictionary<Type, Type[]>
         {
             { typeof(ClearCacheRequest), [type] }
-        };
-        var behavior = new InMemoryCacheBehavior<CachedRequest, string>(_memoryCache);
+        });
+        var behavior = new InMemoryCacheBehavior<CachedRequest, string>(_memoryCache, _services.Locks<CachedRequest>(), _services.Invalidation);
         var request = new CachedRequest
         {
             TestData = "test"
@@ -83,17 +92,17 @@ public class InMemoryCacheBehaviorTests
 
         await behavior.HandleAsync(request, next, CancellationToken.None);
 
-        var key = $"{type.Name}_" + System.Text.Json.JsonSerializer.Serialize(request);
+        var key = request.GetCacheEntryKey();
         Assert.True(_memoryCache.TryGetValue(key, out _));
 
         var clearCacheRequest = new ClearCacheRequest();
-        var behaviorForClear = new InMemoryCacheBehavior<ClearCacheRequest, string>(_memoryCache);
+        var behaviorForClear = new InMemoryClearCacheByMatrixBehavior<ClearCacheRequest, string>(_services.Invalidation, matrix);
         await behaviorForClear.HandleAsync(clearCacheRequest, next, CancellationToken.None);
 
         Assert.False(_memoryCache.TryGetValue(key, out _));
     }
 
-    [CacheResponse(typeof(ClearCacheRequest))]
+    [CacheResponseInMemory(typeof(ClearCacheRequest))]
     internal class CachedRequest : IRequest<string>
     {
         public string TestData { get; set; }
@@ -101,7 +110,7 @@ public class InMemoryCacheBehaviorTests
 
     internal class ClearCacheRequest : IRequest<string>;
 
-    [CacheResponse]
+    [CacheResponseInMemory]
     internal class TestRequest : IRequest<string>
     {
         public string Value { get; set; } = string.Empty;
@@ -112,7 +121,7 @@ public class InMemoryCacheBehaviorTests
         public string Value { get; set; } = string.Empty;
     }
 
-    [CacheResponse(10)]
+    [CacheResponseInMemory(10)]
     internal class CacheForSecondsRequest : IRequest<string>
     {
         public string Value { get; set; } = string.Empty;
@@ -121,7 +130,7 @@ public class InMemoryCacheBehaviorTests
     [Fact]
     public async Task HandleAsync_ShouldNotCacheNullResult()
     {
-        var behavior = new InMemoryCacheBehavior<TestRequest, string?>(_memoryCache);
+        var behavior = new InMemoryCacheBehavior<TestRequest, string?>(_memoryCache, _services.Locks<TestRequest>(), _services.Invalidation);
         var request = new TestRequest { Value = "test-null" };
         int nextCalled = 0;
         var next = new TestRequestHandlerNext<string?>(() => { nextCalled++; return Task.FromResult<string?>(null); });
