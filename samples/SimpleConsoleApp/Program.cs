@@ -1,12 +1,11 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using MitMediator;
-using MitMediator.InMemoryCache;
 
 var services = new ServiceCollection();
 services
-    .AddMitMediator(typeof(PingRequestHandler).Assembly)
-    .AddRequestsInMemoryCache(new MemoryCacheOptions {SizeLimit = 100}, typeof(PingRequestHandler).Assembly);
+    .AddMitMediator()
+    .AddMitMediatorInMemoryCache(new MemoryCacheOptions {SizeLimit = 100});
 
 var provider = services.BuildServiceProvider();
 var mediator = provider.GetRequiredService<IMediator>();
@@ -19,7 +18,7 @@ Console.WriteLine(result); //Pong result
 result = await mediator.SendAsync<PingRequest, string>(new PingRequest(), CancellationToken.None);
 Console.WriteLine(result); //Pong result
 
-[CacheResponse]
+[CacheResponseInMemory]
 public class PingRequest : IRequest<string>;
 
 public class PingRequestHandler : IRequestHandler<PingRequest, string>

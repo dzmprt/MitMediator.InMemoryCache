@@ -1,0 +1,23 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/samples/">
+    <Project Path="samples/SimpleConsoleApp/SimpleConsoleApp.csproj" />
+  </Folder>
+  <Folder Name="/samples/BooksWebApi/">
+    <Project Path="samples/BooksWebApi/Books.Application/Books.Application.csproj" />
+    <Project Path="samples/BooksWebApi/Books.Domain/Books.Domain.csproj" />
+    <Project Path="samples/BooksWebApi/Books.Infrastructure/Books.Infrastructure.csproj" />
+    <Project Path="samples/BooksWebApi/Books.WebApi/Books.WebApi.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/MitMediator.InMemoryCache.Abstractions/MitMediator.InMemoryCache.Abstractions.csproj" />
+    <Project Path="src/MitMediator.InMemoryCache/MitMediator.InMemoryCache.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MitMediator.InMemoryCache.Tests/MitMediator.InMemoryCache.Tests.csproj" />
+  </Folder>
+</Solution>

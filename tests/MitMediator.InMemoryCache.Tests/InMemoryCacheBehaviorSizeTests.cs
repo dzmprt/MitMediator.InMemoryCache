@@ -8,14 +8,23 @@ using Xunit;
 
 namespace MitMediator.InMemoryCache.Tests;
 
-public class InMemoryCacheBehaviorSizeTests
+public class InMemoryCacheBehaviorSizeTests : IDisposable
 {
     private readonly MemoryCache _memoryCache = new(new MemoryCacheOptions { SizeLimit = 1000, TrackStatistics = true});
+    private readonly TestCacheServices _services;
+
+    public InMemoryCacheBehaviorSizeTests() => _services = new TestCacheServices(_memoryCache);
+
+    public void Dispose()
+    {
+        _services.Dispose();
+        _memoryCache.Dispose();
+    }
 
     [Fact]
     public async Task CacheEntry_Size_Is_One_For_Single_Response()
     {
-        var behavior = new InMemoryCacheBehavior<SingleRequest, string>(_memoryCache);
+        var behavior = new InMemoryCacheBehavior<SingleRequest, string>(_memoryCache, _services.Locks<SingleRequest>(), _services.Invalidation);
         var request = new SingleRequest();
         var next = new SingleHandlerNext();
         await behavior.HandleAsync(request, next, CancellationToken.None);
@@ -26,7 +35,7 @@ public class InMemoryCacheBehaviorSizeTests
     [Fact]
     public async Task CacheEntry_Size_Equals_Collection_Count()
     {
-        var behavior = new InMemoryCacheBehavior<CollectionRequest, List<string>>(_memoryCache);
+        var behavior = new InMemoryCacheBehavior<CollectionRequest, List<string>>(_memoryCache, _services.Locks<CollectionRequest>(), _services.Invalidation);
         var request = new CollectionRequest();
         var next = new CollectionHandlerNext();
          
@@ -36,10 +45,10 @@ public class InMemoryCacheBehaviorSizeTests
     }
     
 
-    [CacheResponse]
+    [CacheResponseInMemory]
     private class SingleRequest : IRequest<string> { }
     
-    [CacheResponse]
+    [CacheResponseInMemory]
     private class CollectionRequest : IRequest<List<string>> { }
     private class SingleHandlerNext : IRequestHandlerNext<SingleRequest, string>
     {

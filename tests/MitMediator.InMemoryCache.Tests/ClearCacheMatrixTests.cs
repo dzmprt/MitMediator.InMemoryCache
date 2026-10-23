@@ -1,21 +1,23 @@
-using System;
-using System.Collections.Generic;
-using System.Reflection;
-using Microsoft.Extensions.DependencyInjection;
-using MitMediator.InMemoryCache;
-using Xunit;
-
 namespace MitMediator.InMemoryCache.Tests;
 
 public class ClearCacheMatrixTests
 {
     [Fact]
-    public void ClearCacheMatrixDictionary_SetAndGet_WorksCorrectly()
+    public void Constructor_ShouldStoreRules()
     {
         var dict = new Dictionary<Type, Type[]> { { typeof(string), new[] { typeof(int), typeof(double) } } };
-        ClearCacheMatrix.ClearCacheMatrixDictionary = dict;
-        Assert.NotNull(ClearCacheMatrix.ClearCacheMatrixDictionary);
-        Assert.True(ClearCacheMatrix.ClearCacheMatrixDictionary.ContainsKey(typeof(string)));
-        Assert.Equal(new[] { typeof(int), typeof(double) }, ClearCacheMatrix.ClearCacheMatrixDictionary[typeof(string)]);
+        var matrix = new ClearCacheMatrix(dict);
+
+        Assert.Equal(new[] { typeof(int), typeof(double) }, matrix.ClearCacheMatrixDictionary[typeof(string)]);
+    }
+
+    [Fact]
+    public void Instances_ShouldHaveIndependentRules()
+    {
+        var first = new ClearCacheMatrix(new Dictionary<Type, Type[]> { [typeof(string)] = [typeof(int)] });
+        var second = new ClearCacheMatrix(new Dictionary<Type, Type[]>());
+
+        Assert.Equal(new[] { typeof(int) }, first.ClearCacheMatrixDictionary[typeof(string)]);
+        Assert.Empty(second.ClearCacheMatrixDictionary);
     }
 }

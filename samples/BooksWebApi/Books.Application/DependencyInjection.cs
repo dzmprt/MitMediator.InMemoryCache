@@ -4,7 +4,6 @@ using FluentValidation;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using MitMediator;
-using MitMediator.InMemoryCache;
 
 namespace Books.Application;
 
@@ -22,7 +21,7 @@ public static class DependencyInjection
     {
         return services
             .AddMitMediator()
-            .AddRequestsInMemoryCache(new MemoryCacheOptions { SizeLimit = 1000 })
+            .AddMitMediatorInMemoryCache(new MemoryCacheOptions { SizeLimit = 1000 })
             .AddValidatorsFromAssembly(Assembly.GetExecutingAssembly(), includeInternalTypes: true)
             .AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
     }
