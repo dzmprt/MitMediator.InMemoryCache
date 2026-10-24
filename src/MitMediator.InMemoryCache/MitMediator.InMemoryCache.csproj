@@ -40,7 +40,6 @@ Change attribute name to [CacheResponseInMemory]. Add abstractions package.</Pac
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference
-            Include="../MitMediator.InMemoryCache.Abstractions/MitMediator.InMemoryCache.Abstractions.csproj" />
+        <PackageReference Include="MitMediator.InMemoryCache.Abstractions" />
     </ItemGroup>
 </Project>
