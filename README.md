@@ -12,13 +12,13 @@ In-memory response caching for [MitMediator](https://github.com/dzmprt/MitMediat
 ### 1. Add package
 
 ```sh
-dotnet add package MitMediator.InMemoryCache -v 10.0.0-alfa
+dotnet add package MitMediator.InMemoryCache -v 10.0.0
 ```
 
 For a project that only declares requests, use `MitMediator.InMemoryCache.Abstractions` instead:
 
 ```sh
-dotnet add package MitMediator.InMemoryCache.Abstractions -v 10.0.0-alfa
+dotnet add package MitMediator.InMemoryCache.Abstractions -v 10.0.0
 ```
 
 ### 2. Register services
