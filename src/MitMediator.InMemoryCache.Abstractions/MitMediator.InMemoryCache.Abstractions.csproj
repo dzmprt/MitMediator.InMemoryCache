@@ -1,34 +1,36 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <RootNamespace>MitMediator.InMemoryCache.Abstractions</RootNamespace>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-    <Version>10.0.0-alfa</Version>
-    <Title>MitMediator.InMemoryCache.Abstractions</Title>
-    <Description>An attribute-driven in-memory caching extension for the MitMediator</Description>
-    <PackageProjectUrl>https://github.com/dzmprt/MitMediator.InMemoryCache</PackageProjectUrl>
-    <PackageTags>mediator;request;response;queries;commands;mitmediator;cqrs;memorycache;inmemorycache</PackageTags>
-    <PackageReleaseNotes>v10.0.0-alfa
-Change attribute name to [CacheResponseInMemory]. Add abstractions package.</PackageReleaseNotes>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>logo.png</PackageIcon>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-  </PropertyGroup>
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <RootNamespace>MitMediator.InMemoryCache.Abstractions</RootNamespace>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Version>10.0.0</Version>
+        <Title>MitMediator.InMemoryCache.Abstractions</Title>
+        <Description>An attribute-driven in-memory caching extension for the MitMediator</Description>
+        <PackageProjectUrl>https://github.com/dzmprt/MitMediator.InMemoryCache</PackageProjectUrl>
+        <PackageTags>mediator;request;response;queries;commands;mitmediator;cqrs;memorycache;inmemorycache</PackageTags>
+        <PackageReleaseNotes>v10.0.0
+- Upgraded to .NET 10 and MitMediator 10.
+- Moved the caching attribute to `MitMediator.InMemoryCache.Abstractions`; renamed `CacheResponse` to `CacheResponseInMemory` (**breaking change**).
+- Improved cache synchronization and invalidation with striped locks, including generic request invalidation.</PackageReleaseNotes>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageIcon>logo.png</PackageIcon>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    </PropertyGroup>
 
-  <ItemGroup>
-    <None Include="..\..\assets\logo.png" Pack="true" PackagePath="" />
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="..\..\assets\logo.png" Pack="true" PackagePath="" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    </ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
-  </ItemGroup>
+    <ItemGroup>
+        <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+    </ItemGroup>
 
 
 </Project>
