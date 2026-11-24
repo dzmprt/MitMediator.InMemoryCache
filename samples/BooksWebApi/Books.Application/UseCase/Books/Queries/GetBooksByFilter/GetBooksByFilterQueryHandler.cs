@@ -8,31 +8,24 @@ namespace Books.Application.UseCase.Books.Queries.GetBooksByFilter;
 /// <summary>
 /// Handler for <see cref="GetBooksByFilterQuery"/>.
 /// </summary>
-internal sealed class GetBooksByFilterQueryHandler : IRequestHandler<GetBooksByFilterQuery, Book[]>
+/// <remarks>
+/// Initializes a new instance of the <see cref="GetAuthorsByFilterQueryHandler"/>.
+/// </remarks>
+/// <param name="booksProvider">Books provider.</param>
+internal sealed class GetBooksByFilterQueryHandler(IBaseProvider<Book> booksProvider) : IRequestHandler<GetBooksByFilterQuery, Book[]>
 {
-    private readonly IBaseProvider<Book> _booksProvider;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="GetAuthorsByFilterQueryHandler"/>.
-    /// </summary>
-    /// <param name="booksProvider">Books provider.</param>
-    public GetBooksByFilterQueryHandler(IBaseProvider<Book> booksProvider)
-    {
-        _booksProvider = booksProvider;
-    }
-    
     /// <inheritdoc/>
     public ValueTask<Book[]> HandleAsync(GetBooksByFilterQuery request, CancellationToken cancellationToken)
     {
-        Thread.Sleep(2000);
+        Thread.Sleep(1000);
         var freeText = request.FreeText?.Trim().ToUpperInvariant();
-        return _booksProvider.SearchAsync(
+        return booksProvider.SearchAsync(
             freeText is null
                 ? null
-                : q => q.Author.FirstName.Contains(freeText) || 
-                       q.Author.LastName.Contains(freeText) || 
-                       q.Title.Contains(freeText) || 
-                       q.Genre.GenreName.Contains(freeText),
+                : q => q.Author.FirstName.Contains(freeText) ||
+                        q.Author.LastName.Contains(freeText) ||
+                        q.Title.Contains(freeText) ||
+                        q.Genre.GenreName.Contains(freeText),
             o => o.BookId,
             request.Limit,
             request.Offset,

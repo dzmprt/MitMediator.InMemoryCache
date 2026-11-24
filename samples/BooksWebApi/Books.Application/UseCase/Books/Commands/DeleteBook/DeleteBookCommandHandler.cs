@@ -1,41 +1,30 @@
 using Books.Application.UseCase.Authors.Commands.DeleteAuthor;
 using Books.Application.Abstractions.Infrastructure;
 using Books.Application.Exceptions;
-using Books.Application.UseCase.Books.Queries.GetBook;
 using Books.Domain;
 using MitMediator;
-using MitMediator.InMemoryCache;
 
 namespace Books.Application.UseCase.Books.Commands.DeleteBook;
 
 /// <summary>
 /// Handler for <see cref="DeleteBookCommand"/>.
 /// </summary>
-internal sealed class DeleteBookCommandHandler : IRequestHandler<DeleteBookCommand>
+/// <remarks>
+/// Initializes a new instance of the <see cref="DeleteBookCommandHandler"/>.
+/// </remarks>
+/// <param name="booksRepository">Books repository.</param>
+internal sealed class DeleteBookCommandHandler(IBaseRepository<Book> booksRepository) : IRequestHandler<DeleteBookCommand>
 {
-    private readonly IBaseRepository<Book> _booksRepository;
-    private readonly IMediator _mediator;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="DeleteBookCommandHandler"/>.
-    /// </summary>
-    /// <param name="booksRepository">Books repository.</param>
-    public DeleteBookCommandHandler(IBaseRepository<Book> booksRepository, IMediator mediator)
-    {
-        _booksRepository = booksRepository;
-        _mediator = mediator;
-    }
-    
     /// <inheritdoc/>
     public async ValueTask<Unit> HandleAsync(DeleteBookCommand command, CancellationToken cancellationToken)
     {
-        var book = await _booksRepository.FirstOrDefaultAsync(q => q.BookId == command.BookId, cancellationToken);
+        var book = await booksRepository.FirstOrDefaultAsync(q => q.BookId == command.BookId, cancellationToken);
         if (book is null)
         {
             throw new NotFoundException();
         }
-        await _booksRepository.RemoveAsync(book, cancellationToken);
-        await _mediator.ClearResponseCacheAsync(new GetBookQuery() { BookId = command.BookId }, cancellationToken);
+        book.MarkDeleted();
+        await booksRepository.RemoveAsync(book, cancellationToken);
         return Unit.Value;
     }
 }
